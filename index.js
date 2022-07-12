@@ -7,13 +7,23 @@ app.use(express.json())
 
 const customers = []; 
 
-/**
- * cpf - string
- * name - string
- * id - uuid
- * statement []
- */
+//Middleware de verificação de conta
+function verifyIfExistsAccountCPF(request, response, next) {
+    const { cpf } = request.headers;
+    
+    const customer = customers.find((customer) => customer.cpf === cpf);
 
+    if (!customer) {
+        return response.status(400).json({ error: "Customer not found"});
+    }
+
+    request.customer = customer;
+
+    return next();
+
+}
+
+//se não existir um customer ele vai dar a mensagem de erro, se existir ele vai fazer todo o processo
 
 app.post("/account", (request, response) => {
     const { cpf, name } = request.body;
@@ -26,7 +36,6 @@ app.post("/account", (request, response) => {
         return response.status(400).json({ error: "Customer already exists!"});
     }
     
-
     customers.push({
         cpf,
         name,
@@ -38,9 +47,9 @@ app.post("/account", (request, response) => {
 
 });
 
-app.get("/statement/:cpf", (request, response) => { //extrato bancário
-    const { cpf } = request.params;
-    const customer = customers.find((customer) => customer.cpf === cpf);
+app.get("/statement", verifyIfExistsAccountCPF, (request, response) => { //extrato bancário
+    const { customer } = request;
+
     return response.json(customer.statement);
 
 } )
